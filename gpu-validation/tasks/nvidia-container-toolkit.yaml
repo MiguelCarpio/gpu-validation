@@ -1,0 +1,45 @@
+---
+- name: Add NVIDIA container toolkit repository
+  when: gpu_validation_nvidia_container_toolkit_repo_url | default('') | length > 0
+  become: true
+  ansible.builtin.get_url:
+    url: "{{ gpu_validation_nvidia_container_toolkit_repo_url }}"
+    dest: /etc/yum.repos.d/nvidia-container-toolkit.repo
+    mode: "0644"
+
+- name: Install nvidia-container-toolkit
+  become: true
+  ansible.builtin.dnf:
+    use_backend: dnf4
+    name: nvidia-container-toolkit
+    state: present
+
+- name: Reboot the VM to find the installed drivers
+  become: true
+  ansible.builtin.reboot:
+    reboot_timeout: 1800
+
+- name: Check if CDI configfile exists
+  become: true
+  ansible.builtin.stat:
+    path: /etc/cdi/nvidia.yaml
+  register: nvidia_driver_cdi_config_file
+
+- name: Configure NVIDIA CDI for container GPU access
+  when: not nvidia_driver_cdi_config_file.stat.exists
+  become: true
+  block:
+    - name: Ensure CDI directory exists
+      ansible.builtin.file:
+        path: /etc/cdi
+        state: directory
+        mode: "0755"
+        owner: root
+
+    - name: Configure NVIDIA container runtime
+      ansible.builtin.command: nvidia-ctk runtime configure --runtime=containerd
+      changed_when: true
+
+    - name: Generate NVIDIA CDI configuration
+      ansible.builtin.command: nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+      changed_when: true

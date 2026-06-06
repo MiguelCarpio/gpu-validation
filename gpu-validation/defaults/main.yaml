@@ -76,6 +76,12 @@ gpu_validation_dns_server: 192.168.122.1
 gpu_validation_pci_devices:
   10de:27b8: 1
 
+# [bool] Install nvidia-container-toolkit and generate CDI specs for container GPU access.
+# Required when the guest VM does not have the toolkit pre-installed.
+gpu_validation_nvidia_container_toolkit_install: false
+# [string] URL of the nvidia-container-toolkit .repo file to add.
+# When empty, the repo is not added (toolkit must already be available from an existing repo).
+gpu_validation_nvidia_container_toolkit_repo_url: "https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo"
 # [string] PyTorch pip index URL (e.g. https://download.pytorch.org/whl/cu128 for Blackwell)
 gpu_validation_pytorch_url: https://download.pytorch.org/whl/cu126
 

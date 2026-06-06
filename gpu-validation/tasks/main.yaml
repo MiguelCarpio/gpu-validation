@@ -16,6 +16,10 @@
     - ansible_distribution == "RedHat"
     - gpu_validation_mode == "mig"
 
+- name: Install NVIDIA container toolkit and configure CDI
+  ansible.builtin.import_tasks: nvidia-container-toolkit.yaml
+  when: gpu_validation_nvidia_container_toolkit_install | bool
+
 - name: Check GPUs
   ansible.builtin.import_tasks: gpus.yaml
 - name: GPUs Assertions  # noqa: ignore-errors
