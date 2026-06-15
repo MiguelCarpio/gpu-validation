@@ -21,3 +21,15 @@
   when:
     - found_nvidia | default(false)
     - not nvidia_smi_output.failed
+
+- name: Run nvidia smi to get MIG device status
+  ansible.builtin.command: nvidia-smi --query-gpu uuid,pci.device_id,mig.mode.current --format=noheader
+  register: nvidia_smi_mig_mode_output
+  when: gpu_validation_mode == "mig"
+  changed_when: false
+
+- name: Run lsmod to get MIG NVIDIA modules status
+  ansible.builtin.command: lsmod
+  register: lsmod_mig_mode_output
+  when: gpu_validation_mode == "mig"
+  changed_when: false

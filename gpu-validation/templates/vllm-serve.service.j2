@@ -19,4 +19,7 @@ ExecStart=podman run \
     -p 8000:8000 \
     {{ gpu_validation_workload_container_image }} \
     --model {{ gpu_validation_model_name | quote }} \
+{% if gpu_validation_mem_utilization %}
+    --gpu-memory-utilization {{ gpu_validation_mem_utilization }} \
+{% endif %}
     --tensor-parallel-size {{ gpu_validation_num_gpus }}

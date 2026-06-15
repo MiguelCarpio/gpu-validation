@@ -1,0 +1,57 @@
+---
+- name: Add NVIDIA CUDA repo
+  become: true
+  ansible.builtin.yum_repository:
+    name: nvidia-cuda
+    description: nvidia cuda repo
+    baseurl: "{{ edpm_accel_drivers_nvidia_repo_url }}/$basearch/"
+    gpgcheck: true
+    gpgkey: "{{ edpm_accel_drivers_nvidia_repo_gpgkey }}"
+
+- name: Install nvidia-container-toolkit
+  become: true
+  ansible.builtin.dnf:
+    use_backend: dnf4
+    name: nvidia-container-toolkit
+    state: present
+
+- name: Reboot the VM to find the installed drivers
+  become: true
+  ansible.builtin.reboot:
+    reboot_timeout: 600
+
+- name: Check if CDI configfile exists
+  become: true
+  ansible.builtin.stat:
+    path: /etc/cdi/nvidia.yaml
+  register: nvidia_driver_cdi_config_file
+
+- name: Configure NVIDIA container runtime
+  when: not nvidia_driver_cdi_config_file.stat.exists
+  become: true
+  block:
+    - name: Ensure CDI directory exists
+      ansible.builtin.file:
+        path: /etc/cdi
+        state: directory
+        mode: "0755"
+        owner: root
+
+    - name: Configure NVIDIA container runtime
+      ansible.builtin.command: nvidia-ctk runtime configure --runtime=containerd
+      changed_when: true
+
+    - name: Generate NVIDIA CDI configuration
+      ansible.builtin.command: nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+      changed_when: true
+
+- name: Install NVIDIA Management Library
+  become: true
+  ansible.builtin.dnf:
+    use_backend: dnf4
+    name: "{{ gpu_validation_libnvidia_ml_version }}"
+    state: present
+
+- name: Refresh package facts after driver installation
+  ansible.builtin.package_facts:
+    manager: rpm

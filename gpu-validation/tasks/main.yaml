@@ -10,6 +10,12 @@
 - name: Reboot if system updates require it
   ansible.builtin.import_tasks: reboot_if_needed.yaml
 
+- name: Install NVIDIA CUDA repos
+  ansible.builtin.import_tasks: nvidia-cuda-repos.yaml
+  when:
+    - ansible_distribution == "RedHat"
+    - gpu_validation_mode == "mig"
+
 - name: Check GPUs
   ansible.builtin.import_tasks: gpus.yaml
 - name: GPUs Assertions  # noqa: ignore-errors

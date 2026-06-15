@@ -6,6 +6,34 @@
   when: gpu_validation_dns_server != ""
   changed_when: true
 
+- name: Install needed driver dependency packages for RHEL
+  when:
+    - ansible_distribution == "RedHat"
+    - gpu_validation_mode == "mig"
+  block:
+    - name: Execute bootstrap command - RHEL repo setup
+      ansible.builtin.include_role:
+        name: osp.edpm.edpm_bootstrap
+        tasks_from: bootstrap_command.yml
+
+    - name: Add EPEL repository for DKMS (UNSUPPORTED)
+      ansible.builtin.yum_repository:
+        name: epel
+        description: EPEL YUM repo
+        baseurl: "https://download.fedoraproject.org/pub/epel/{{ ansible_facts['distribution_major_version'] }}/Everything/$basearch/"
+        enabled: 1
+        gpgcheck: 1
+        gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_facts['distribution_major_version'] }}"
+
+    - name: Install DKMS (UNSUPPORTED)
+      ansible.builtin.dnf:
+        use_backend: dnf4
+        name:
+          - dkms
+          - kernel-devel
+          - kernel-headers
+        state: present
+
 - name: Install pciutils package
   ansible.builtin.dnf:
     use_backend: dnf4
