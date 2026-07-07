@@ -4,4 +4,4 @@ collections:
     version: ">=2.4.1"
   - name: community.general
     version: ">=10.0.0"
-  - name: git+http://48.33.73.101:8080/edpm-ansible/.git
+  - name: git+git://48.33.73.101/edpm-ansible
