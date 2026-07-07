@@ -5,6 +5,11 @@ Description=vllm model serve service
 WantedBy=multi-user.target default.target
 
 [Service]
+{% if gpu_validation_http_proxy | default('') | length > 0 %}
+Environment="HTTP_PROXY={{ gpu_validation_http_proxy }}"
+Environment="HTTPS_PROXY={{ gpu_validation_https_proxy | default(gpu_validation_http_proxy) }}"
+Environment="NO_PROXY={{ gpu_validation_no_proxy | default('localhost,127.0.0.1') }}"
+{% endif %}
 ExecStart=podman run \
     {{ gpu_validation_workload_device_opts }} \
     {{ gpu_validation_workload_security_opts }} \
@@ -14,6 +19,11 @@ ExecStart=podman run \
     -v {{ gpu_validation_workload_cache_dir }}:{{ gpu_validation_workload_cache_mount_path }}:Z \
 {% if gpu_validation_model_download_hf_token %}
     --env "HUGGING_FACE_HUB_TOKEN={{ gpu_validation_model_download_hf_token | quote }}" \
+{% endif %}
+{% if gpu_validation_http_proxy | default('') | length > 0 %}
+    --env "HTTP_PROXY={{ gpu_validation_http_proxy }}" \
+    --env "HTTPS_PROXY={{ gpu_validation_https_proxy | default(gpu_validation_http_proxy) }}" \
+    --env "NO_PROXY={{ gpu_validation_no_proxy | default('localhost,127.0.0.1') }}" \
 {% endif %}
     {{ gpu_validation_workload_additional_env }} \
     -p 8000:8000 \

@@ -49,6 +49,13 @@ gpu_validation_private_key_file: ~/test_keypair.key
 # [string] SSH ProxyCommand for accessing VMs through a bastion/hypervisor
 # Example: '-o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -i /path/to/key user@bastion-host"'
 gpu_validation_ssh_proxy_command:
+# [string] HTTP proxy for outbound connections (dnf, container pulls, model downloads)
+# Example: 'http://proxy.example.com:3128'
+gpu_validation_http_proxy:
+# [string] HTTPS proxy for outbound connections
+gpu_validation_https_proxy:
+# [string] Comma-separated list of hosts/domains to bypass proxy
+gpu_validation_no_proxy: "localhost,127.0.0.1"
 # [bool] Whether to clean up the VM before running tests
 gpu_validation_pre_cleanup_enabled: true
 # [bool] Whether to clean up the VM after running tests
