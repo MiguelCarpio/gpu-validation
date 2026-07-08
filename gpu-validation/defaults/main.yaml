@@ -74,6 +74,9 @@ gpu_validation_model_name: TinyLlama/TinyLlama-1.1B-Chat-v1.0  # RedHatAI/Llama-
 # [string] (optional) HuggingFace token if required for download
 gpu_validation_model_download_hf_token:
 
+# [float] GPU memory utilization for vLLM (0.0-1.0)
+gpu_validation_mem_utilization: 0.9
+
 # [float] Performance threshholds
 gpu_validation_model_perf_max_avg_time_per_tok: !!float "0.03"
 gpu_validation_model_perf_max_avg_time_to_first_tok: !!float "0.3"
