@@ -1,0 +1,35 @@
+---
+- name: Configure HTTP/HTTPS proxy for outbound connections
+  ansible.builtin.blockinfile:
+    path: /etc/environment
+    create: true
+    mode: "0644"
+    block: |
+      HTTP_PROXY={{ gpu_validation_http_proxy }}
+      HTTPS_PROXY={{ gpu_validation_https_proxy }}
+      http_proxy={{ gpu_validation_http_proxy }}
+      https_proxy={{ gpu_validation_https_proxy }}
+      NO_PROXY={{ gpu_validation_no_proxy }}
+      no_proxy={{ gpu_validation_no_proxy }}
+
+- name: Configure dnf proxy
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/dnf.conf
+    regexp: '^proxy='
+    line: "proxy={{ gpu_validation_http_proxy }}"
+
+- name: Configure container engine proxy
+  ansible.builtin.file:
+    path: /etc/systemd/system/podman.service.d
+    state: directory
+    mode: "0755"
+
+- name: Set container engine proxy environment
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/podman.service.d/http-proxy.conf
+    mode: "0644"
+    content: |
+      [Service]
+      Environment="HTTP_PROXY={{ gpu_validation_http_proxy }}"
+      Environment="HTTPS_PROXY={{ gpu_validation_https_proxy }}"
+      Environment="NO_PROXY={{ gpu_validation_no_proxy }}"
