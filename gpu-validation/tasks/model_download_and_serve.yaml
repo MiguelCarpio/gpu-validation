@@ -58,6 +58,7 @@
 - name: Wait for vllm API to appear
   ansible.builtin.uri:
     url: "{{ gpu_validation_vllm_api_url }}/health"
+    use_proxy: "{{ gpu_validation_vllm_api_url is not search('localhost|127\\.0\\.0\\.1') }}"
   register: api_result
   until: ("status" in api_result) and (api_result.status == 200)
   retries: 180  # 180 * 10 = 30 mins - this includes the time to download the model
@@ -67,6 +68,7 @@
 - name: Wait for vllm metrics endpoint to appear
   ansible.builtin.uri:
     url: "{{ gpu_validation_vllm_api_url }}/metrics/"
+    use_proxy: "{{ gpu_validation_vllm_api_url is not search('localhost|127\\.0\\.0\\.1') }}"
   register: metrics_result
   until: ("status" in metrics_result) and (metrics_result.status == 200)
   retries: 12  # 12 * 10 = 2 mins after API appears
