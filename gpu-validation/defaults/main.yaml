@@ -77,8 +77,8 @@ gpu_validation_model_download_hf_token:
 # [string] PyTorch pip index URL (e.g. https://download.pytorch.org/whl/cu128 for Blackwell)
 gpu_validation_pytorch_url: https://download.pytorch.org/whl/cu126
 
-# [float] GPU memory utilization for vLLM (0.0-1.0)
-gpu_validation_mem_utilization: 0.9
+# [float] GPU memory utilization for vLLM (0.0-1.0, leave empty to use vLLM default)
+gpu_validation_mem_utilization:
 
 # [float] Performance threshholds
 gpu_validation_model_perf_max_avg_time_per_tok: !!float "0.03"
