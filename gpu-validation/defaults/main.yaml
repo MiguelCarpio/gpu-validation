@@ -74,6 +74,9 @@ gpu_validation_model_name: TinyLlama/TinyLlama-1.1B-Chat-v1.0  # RedHatAI/Llama-
 # [string] (optional) HuggingFace token if required for download
 gpu_validation_model_download_hf_token:
 
+# [string] PyTorch pip index URL (e.g. https://download.pytorch.org/whl/cu128 for Blackwell)
+gpu_validation_pytorch_url: https://download.pytorch.org/whl/cu126
+
 # [float] GPU memory utilization for vLLM (0.0-1.0)
 gpu_validation_mem_utilization: 0.9
 
