@@ -32,6 +32,11 @@
       "resources:VGPU": "1"
   when: gpu_validation_mode == "mig"
 
+- name: Add hugepage support to extra_specs
+  ansible.builtin.set_fact:
+    gpu_validation_extra_specs: "{{ gpu_validation_extra_specs | combine({'hw:mem_page_size': gpu_validation_mem_page_size}) }}"
+  when: gpu_validation_mem_page_size | default('') | length > 0
+
 - name: Create flavor for GPU validation
   openstack.cloud.compute_flavor:
     name: "{{ gpu_validation_flavor_name }}"

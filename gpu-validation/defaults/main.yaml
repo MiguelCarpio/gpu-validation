@@ -32,7 +32,10 @@ gpu_validation_extra_specs:
   "hw:hide_hypervisor_id": "true"
   "hw:kvm_hidden": "true"
   "hw:cpu_model": "host-passthrough"
-  "hw:mem_page_size": "1GB"
+
+# [string] Hugepage size for VM memory backing (e.g. "1GB", "2MB")
+# When set, adds hw:mem_page_size to the flavor extra_specs
+gpu_validation_mem_page_size:
 
 # [string] NVIDIA management library version
 gpu_validation_libnvidia_ml_version: libnvidia-ml
