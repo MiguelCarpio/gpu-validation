@@ -105,6 +105,8 @@ gpu_validation_vllm_api_url: "http://127.0.0.1:8000"
 # [float] GPU memory utilization for vLLM (0.0-1.0, leave empty to use vLLM default)
 gpu_validation_vllm_mem_utilization:
 
+# [bool] Force reboot regardless of needs-restarting check
+gpu_validation_reboot_force: false
 # [int] Reboot timeout in seconds
 gpu_validation_reboot_timeout: 3600
 # [int] Post-reboot delay in seconds
