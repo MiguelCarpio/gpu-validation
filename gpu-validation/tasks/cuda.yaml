@@ -3,7 +3,7 @@
   ansible.builtin.pip:
     name: torch
     state: present
-    extra_args: -i https://download.pytorch.org/whl/cu126
+    extra_args: -i {{ gpu_validation_pytorch_url }}
 
 - name: Install numpy libs
   ansible.builtin.pip:
