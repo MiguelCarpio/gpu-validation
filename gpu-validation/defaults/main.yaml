@@ -71,6 +71,9 @@ gpu_validation_no_proxy: "localhost,127.0.0.1"
 # [string] NVIDIA management library version
 gpu_validation_libnvidia_ml_version: libnvidia-ml
 
+# [string] PyTorch pip index URL (e.g. https://download.pytorch.org/whl/cu128 for Blackwell)
+gpu_validation_pytorch_url: https://download.pytorch.org/whl/cu126
+
 gpu_validation_model_tests_enabled: true  # Can be disabled for lighter CUDA-only sanity testing
 gpu_validation_model_name: TinyLlama/TinyLlama-1.1B-Chat-v1.0  # RedHatAI/Llama-3.2-1B-Instruct-FP8 for RHAIIS
 # [string] (optional) HuggingFace token if required for download
