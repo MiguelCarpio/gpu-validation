@@ -60,6 +60,7 @@ gpu_validation_ca_cert_path: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 gpu_validation_ssh_proxy_command:
 
 # [string] HTTP proxy for outbound connections (dnf, container pulls, model downloads)
+# Do not embed credentials in the URL — proxy values are written to systemd unit files
 # Example: 'http://proxy.example.com:3128'
 gpu_validation_http_proxy:
 # [string] HTTPS proxy for outbound connections

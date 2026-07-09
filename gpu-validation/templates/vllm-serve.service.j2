@@ -7,7 +7,7 @@ WantedBy=multi-user.target default.target
 [Service]
 {% if gpu_validation_http_proxy | default('') | length > 0 %}
 Environment="HTTP_PROXY={{ gpu_validation_http_proxy }}"
-Environment="HTTPS_PROXY={{ gpu_validation_https_proxy | default(gpu_validation_http_proxy) }}"
+Environment="HTTPS_PROXY={{ gpu_validation_https_proxy | default(gpu_validation_http_proxy, true) }}"
 Environment="NO_PROXY={{ gpu_validation_no_proxy | default('localhost,127.0.0.1') }}"
 {% endif %}
 ExecStart=podman run \
@@ -22,7 +22,7 @@ ExecStart=podman run \
 {% endif %}
 {% if gpu_validation_http_proxy | default('') | length > 0 %}
     --env "HTTP_PROXY={{ gpu_validation_http_proxy }}" \
-    --env "HTTPS_PROXY={{ gpu_validation_https_proxy | default(gpu_validation_http_proxy) }}" \
+    --env "HTTPS_PROXY={{ gpu_validation_https_proxy | default(gpu_validation_http_proxy, true) }}" \
     --env "NO_PROXY={{ gpu_validation_no_proxy | default('localhost,127.0.0.1') }}" \
 {% endif %}
     {{ gpu_validation_workload_additional_env }} \

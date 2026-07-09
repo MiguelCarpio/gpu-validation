@@ -6,9 +6,9 @@
     mode: "0644"
     block: |
       HTTP_PROXY={{ gpu_validation_http_proxy }}
-      HTTPS_PROXY={{ gpu_validation_https_proxy }}
+      HTTPS_PROXY={{ gpu_validation_https_proxy | default(gpu_validation_http_proxy, true) }}
       http_proxy={{ gpu_validation_http_proxy }}
-      https_proxy={{ gpu_validation_https_proxy }}
+      https_proxy={{ gpu_validation_https_proxy | default(gpu_validation_http_proxy, true) }}
       NO_PROXY={{ gpu_validation_no_proxy }}
       no_proxy={{ gpu_validation_no_proxy }}
 
@@ -31,5 +31,11 @@
     content: |
       [Service]
       Environment="HTTP_PROXY={{ gpu_validation_http_proxy }}"
-      Environment="HTTPS_PROXY={{ gpu_validation_https_proxy }}"
+      Environment="HTTPS_PROXY={{ gpu_validation_https_proxy | default(gpu_validation_http_proxy, true) }}"
       Environment="NO_PROXY={{ gpu_validation_no_proxy }}"
+  register: _proxy_dropin
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: _proxy_dropin.changed  # noqa: no-handler - must reload before subsequent tasks use podman
