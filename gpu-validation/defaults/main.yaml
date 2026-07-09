@@ -22,9 +22,6 @@ gpu_validation_flavor_gpus: 1
 # [string] PCI alias name for GPU device assignment
 gpu_validation_pci_alias: gpu-l4
 
-# [string] Time to wait for VM to become created, seconds
-gpu_validation_server_timeout: 180
-
 # [list] Extra specs for the flavor:
 gpu_validation_extra_specs:
   "pci_passthrough:alias": "{{ gpu_validation_pci_alias }}:{{ gpu_validation_flavor_gpus }}"
@@ -32,13 +29,6 @@ gpu_validation_extra_specs:
   "hw:hide_hypervisor_id": "true"
   "hw:kvm_hidden": "true"
   "hw:cpu_model": "host-passthrough"
-
-# [string] Hugepage size for VM memory backing
-# When set, adds hw:mem_page_size to the flavor extra_specs
-gpu_validation_mem_page_size:
-
-# [string] NVIDIA management library version
-gpu_validation_libnvidia_ml_version: libnvidia-ml
 
 # [string] Keypair to use when creating the VM
 gpu_validation_key_name: gpu-validation
@@ -50,16 +40,14 @@ gpu_validation_security_group: basic
 gpu_validation_floating_ip: 192.168.122.222
 # [string] WARNING Where to (over-)write the ssh key. Must match path in inventory
 gpu_validation_private_key_file: ~/test_keypair.key
-# [string] SSH ProxyCommand for accessing VMs through a bastion/hypervisor
-# Example: '-o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -i /path/to/key user@bastion-host"'
-gpu_validation_ssh_proxy_command:
-# [string] HTTP proxy for outbound connections (dnf, container pulls, model downloads)
-# Example: 'http://proxy.example.com:3128'
-gpu_validation_http_proxy:
-# [string] HTTPS proxy for outbound connections
-gpu_validation_https_proxy:
-# [string] Comma-separated list of hosts/domains to bypass proxy
-gpu_validation_no_proxy: "localhost,127.0.0.1"
+# [string] DNS server to inject into /etc/resolv.conf
+gpu_validation_dns_server: 192.168.122.1
+# [dict] The PCI Device ID and the number of devices expected
+gpu_validation_pci_devices:
+  10de:27b8: 1
+
+# [string] Time to wait for VM to become created, seconds
+gpu_validation_server_timeout: 180
 # [bool] Whether to clean up the VM before running tests
 gpu_validation_pre_cleanup_enabled: true
 # [bool] Whether to clean up the VM after running tests
@@ -67,11 +55,20 @@ gpu_validation_post_cleanup_enabled: false
 # [string] Where to find RHOSO certificates for openstack.cloud modules
 gpu_validation_ca_cert_path: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
 
-# [string] DNS server to inject into /etc/resolv.conf
-gpu_validation_dns_server: 192.168.122.1
-# [dict] The PCI Device ID and the number of devices expected
-gpu_validation_pci_devices:
-  10de:27b8: 1
+# [string] SSH ProxyCommand for accessing VMs through a bastion/hypervisor
+# Example: '-o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -i /path/to/key user@bastion-host"'
+gpu_validation_ssh_proxy_command:
+
+# [string] HTTP proxy for outbound connections (dnf, container pulls, model downloads)
+# Example: 'http://proxy.example.com:3128'
+gpu_validation_http_proxy:
+# [string] HTTPS proxy for outbound connections
+gpu_validation_https_proxy:
+# [string] Comma-separated list of hosts/domains to bypass proxy
+gpu_validation_no_proxy: "localhost,127.0.0.1"
+
+# [string] NVIDIA management library version
+gpu_validation_libnvidia_ml_version: libnvidia-ml
 
 gpu_validation_model_tests_enabled: true  # Can be disabled for lighter CUDA-only sanity testing
 gpu_validation_model_name: TinyLlama/TinyLlama-1.1B-Chat-v1.0  # RedHatAI/Llama-3.2-1B-Instruct-FP8 for RHAIIS
