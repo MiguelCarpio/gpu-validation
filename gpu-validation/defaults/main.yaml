@@ -113,6 +113,8 @@ gpu_validation_workload_shm_size: "--shm-size=4g"
 gpu_validation_workload_additional_env: "--env=HF_HUB_OFFLINE=0 --env=VLLM_NO_USAGE_STATS=1"
 # [string] vLLM API URL
 gpu_validation_vllm_api_url: "http://127.0.0.1:8000"
+# [float] GPU memory utilization for vLLM (0.0-1.0, leave empty to use vLLM default)
+gpu_validation_vllm_mem_utilization:
 
 # [int] Reboot timeout in seconds
 gpu_validation_reboot_timeout: 3600
