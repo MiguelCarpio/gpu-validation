@@ -30,6 +30,10 @@ gpu_validation_extra_specs:
   "hw:kvm_hidden": "true"
   "hw:cpu_model": "host-passthrough"
 
+# [string] Hugepage size for VM memory backing
+# When set, adds hw:mem_page_size to the flavor extra_specs
+gpu_validation_mem_page_size:
+
 # [string] Keypair to use when creating the VM
 gpu_validation_key_name: gpu-validation
 # [string] Network to use when creating the VM
