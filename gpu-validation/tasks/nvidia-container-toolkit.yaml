@@ -13,42 +13,10 @@
     name: nvidia-container-toolkit
     state: present
 
-- name: Reboot the VM to find the installed drivers
-  block:
-    - name: Reboot
-      become: true
-      ansible.builtin.reboot:
-        reboot_timeout: "{{ gpu_validation_reboot_timeout }}"
-        post_reboot_delay: "{{ gpu_validation_reboot_post_delay }}"
-  rescue:
-    - name: Debug message (local runner mode)  # noqa: ignore-errors
-      ansible.builtin.fail:
-        msg: >-
-          In local runner mode, the VM is the control node and cannot be rebooted!
-          Make sure to reboot it manually (just once) and restart the validation suite after.
-      ignore_errors: true
+- name: Reboot if needed after toolkit install
+  ansible.builtin.import_tasks: reboot_if_needed.yaml
 
-- name: Check if CDI configfile exists
+- name: Configure NVIDIA container runtime for CDI
   become: true
-  ansible.builtin.stat:
-    path: /etc/cdi/nvidia.yaml
-  register: nvidia_driver_cdi_config_file
-
-- name: Configure NVIDIA CDI for container GPU access
-  when: not nvidia_driver_cdi_config_file.stat.exists
-  become: true
-  block:
-    - name: Ensure CDI directory exists
-      ansible.builtin.file:
-        path: /etc/cdi
-        state: directory
-        mode: "0755"
-        owner: root
-
-    - name: Configure NVIDIA container runtime
-      ansible.builtin.command: nvidia-ctk runtime configure --runtime=containerd
-      changed_when: true
-
-    - name: Generate NVIDIA CDI configuration
-      ansible.builtin.command: nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
-      changed_when: true
+  ansible.builtin.command: nvidia-ctk runtime configure --runtime=containerd
+  changed_when: true
