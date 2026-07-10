@@ -17,9 +17,18 @@
     var: _gpu_validation_needs_restarting.stdout
 
 - name: Reboot to apply system updates
-  become: true
-  ansible.builtin.reboot:
-    msg: "Rebooting to apply kernel and driver updates"
-    reboot_timeout: "{{ gpu_validation_reboot_timeout }}"
-    post_reboot_delay: "{{ gpu_validation_reboot_post_delay }}"
   when: gpu_validation_reboot_force | bool or _gpu_validation_needs_restarting.rc == 1
+  become: true
+  block:
+    - name: Reboot to apply system updates
+      ansible.builtin.reboot:
+        msg: "Rebooting to apply kernel and driver updates"
+        reboot_timeout: "{{ gpu_validation_reboot_timeout }}"
+        post_reboot_delay: "{{ gpu_validation_reboot_post_delay }}"
+  rescue:
+    - name: Debug message (local runner mode)  # noqa: ignore-errors
+      ansible.builtin.fail:
+        msg: >-
+          In local runner mode, the VM is the control node and cannot be rebooted!
+          Make sure to reboot it manually (just once) and restart the validation suite after.
+      ignore_errors: true
