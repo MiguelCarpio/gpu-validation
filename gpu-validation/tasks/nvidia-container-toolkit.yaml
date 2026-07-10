@@ -10,7 +10,6 @@
 - name: Install nvidia-container-toolkit
   become: true
   ansible.builtin.dnf:
-    use_backend: dnf4
     name: nvidia-container-toolkit
     state: present
 

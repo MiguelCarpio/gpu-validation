@@ -31,7 +31,6 @@
 
     - name: Install DKMS (UNSUPPORTED)
       ansible.builtin.dnf:
-        use_backend: dnf4
         name:
           - dkms
           - kernel-devel
@@ -40,19 +39,16 @@
 
 - name: Install pciutils package
   ansible.builtin.dnf:
-    use_backend: dnf4
     name: pciutils
     state: present
 
 - name: Install pip package
   ansible.builtin.dnf:
-    use_backend: dnf4
     name: python-pip
     state: present
 
 - name: Install podman package
   ansible.builtin.dnf:
-    use_backend: dnf4
     name: podman
     state: present
 

@@ -11,7 +11,6 @@
 - name: Install NVIDIA Management Library
   become: true
   ansible.builtin.dnf:
-    use_backend: dnf4
     name: "{{ gpu_validation_libnvidia_ml_version }}"
     state: present
 
