@@ -18,7 +18,7 @@
 - name: Poll for SSH to be available on {{ gpu_validation_vm_name }}
   ansible.builtin.command: |
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-    {{ gpu_validation_ssh_proxy_command | default('') }} \
+    {{ gpu_validation_ssh_proxy_command }} \
     -i {{ gpu_validation_private_key_file }} cloud-user@{{ gpu_validation_floating_ip }}
   retries: 60  # 60 * 10 = 10 mins
   delay: 10

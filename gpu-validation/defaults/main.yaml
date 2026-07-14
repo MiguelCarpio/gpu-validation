@@ -35,7 +35,7 @@ gpu_validation_extra_specs:
 
 # [string] Hugepage size for VM memory backing
 # When set, adds hw:mem_page_size to the flavor extra_specs
-gpu_validation_mem_page_size:
+gpu_validation_mem_page_size: ''
 
 # [string] NVIDIA management library version
 gpu_validation_libnvidia_ml_version: libnvidia-ml
@@ -53,7 +53,7 @@ gpu_validation_private_key_file: ~/test_keypair.key
 
 # [string] SSH ProxyCommand for accessing VMs through a bastion/hypervisor
 # Example: '-o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -i /path/to/key user@bastion-host"'
-gpu_validation_ssh_proxy_command:
+gpu_validation_ssh_proxy_command: ''
 # [string] HTTP proxy for outbound connections (dnf, container pulls, model downloads)
 # Do not embed credentials in the URL — proxy values are written to systemd unit files
 # Example: 'http://proxy.example.com:3128'
