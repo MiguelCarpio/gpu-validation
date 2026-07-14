@@ -6,6 +6,10 @@
   when: gpu_validation_dns_server != ""
   changed_when: true
 
+- name: Configure proxy settings
+  ansible.builtin.include_tasks: proxy.yaml
+  when: gpu_validation_http_proxy | length > 0
+
 - name: Install needed driver dependency packages for RHEL
   when:
     - ansible_distribution == "RedHat"
