@@ -22,4 +22,4 @@
     msg: "Rebooting to apply kernel and driver updates"
     reboot_timeout: "{{ gpu_validation_reboot_timeout }}"
     post_reboot_delay: "{{ gpu_validation_reboot_post_delay }}"
-  when: _gpu_validation_needs_restarting.rc == 1
+  when: gpu_validation_reboot_force | bool or _gpu_validation_needs_restarting.rc == 1
