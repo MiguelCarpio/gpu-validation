@@ -8,7 +8,7 @@
 
 - name: Configure proxy settings
   ansible.builtin.include_tasks: proxy.yaml
-  when: gpu_validation_http_proxy or gpu_validation_https_proxy
+  when: (gpu_validation_http_proxy | length > 0) or (gpu_validation_https_proxy | length > 0)
 
 - name: Install needed driver dependency packages
   when:
