@@ -2,6 +2,11 @@
 # [bool] Whether to deploy a VM before running tests
 gpu_validation_enabled: true
 # [string] Mode of running the GPU-enabled device
+# Supported values:
+#   pci_passthrough — Direct PCI PF passthrough (default)
+#   mig             — NVIDIA MIG-backed vGPU (A30, RTX PRO 6000 Blackwell)
+#   vgpu            — NVIDIA non-MIG vGPU via mdev (L4, A16, L40S)
+# See https://docs.nvidia.com/vgpu/latest/grid-vgpu-release-notes-red-hat-el-kvm/validated-platforms.html
 gpu_validation_mode: pci_passthrough
 # [string] Name of the VM to create and destroy
 gpu_validation_vm_name: gpu-validation
