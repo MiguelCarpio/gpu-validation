@@ -14,7 +14,7 @@
     url: "{{ gpu_validation_image_url }}"
     dest: "/tmp/{{ gpu_validation_image_url | basename }}"
     mode: '0644'
-  when: not _gpu_validation_image_exists
+  when: not _gpu_validation_image_exists | bool
 
 - name: Create glance image from GPU validation download source
   openstack.cloud.image:
@@ -24,7 +24,7 @@
     filename: "/tmp/{{ gpu_validation_image_url | basename }}"
     visibility: public
     ca_cert: "{{ gpu_validation_ca_cert_path }}"
-  when: not _gpu_validation_image_exists
+  when: not _gpu_validation_image_exists | bool
 
 - name: Reset extra_specs for vGPU scheduling
   ansible.builtin.set_fact:
@@ -35,7 +35,7 @@
 - name: Add hugepage support to extra_specs
   ansible.builtin.set_fact:
     gpu_validation_extra_specs: "{{ gpu_validation_extra_specs | combine({'hw:mem_page_size': gpu_validation_mem_page_size}) }}"
-  when: gpu_validation_mem_page_size
+  when: gpu_validation_mem_page_size | length > 0
 
 - name: Create flavor for GPU validation
   openstack.cloud.compute_flavor:
