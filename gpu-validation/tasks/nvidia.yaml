@@ -2,14 +2,13 @@
 - name: Run nvidia-smi to list NVIDIA GPUs and count them
   ansible.builtin.shell: set -o pipefail && nvidia-smi --list-gpus | wc -l
   register: nvidia_gpu_count
-  when: found_nvidia | default(false)
   changed_when: false
 
-- name: Get some statistics about the NVIDIA GPU
+- name: Get some statistics about the NVIDIA GPU  # noqa: ignore-errors
   ansible.builtin.command: nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.free,temperature.gpu --format=csv,nounits,noheader
   register: nvidia_smi_output
-  when: found_nvidia | default(false)
   changed_when: false
+  ignore_errors: true
 
 - name: Display NVIDIA GPU statistics
   ansible.builtin.debug:
@@ -18,9 +17,7 @@
       Memory Used: {{ nvidia_smi_output.stdout.split(',')[1].strip() }} MiB
       Memory Free: {{ nvidia_smi_output.stdout.split(',')[2].strip() }} MiB
       GPU Temperature: {{ nvidia_smi_output.stdout.split(',')[3].strip() }} C
-  when:
-    - found_nvidia | default(false)
-    - not nvidia_smi_output.failed
+  when: not nvidia_smi_output.failed
 
 - name: Run nvidia smi to get MIG device status
   ansible.builtin.command: nvidia-smi --query-gpu uuid,pci.device_id,mig.mode.current --format=noheader
