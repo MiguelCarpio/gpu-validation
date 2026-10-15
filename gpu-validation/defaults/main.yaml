@@ -30,8 +30,17 @@ gpu_validation_pci_alias: gpu-l4
 # [string] Time to wait for VM to become created, seconds
 gpu_validation_server_timeout: 180
 
-# [list] Extra specs for the flavor:
-gpu_validation_extra_specs:
+# [list] Extra specs for the flavor specified by the user:
+gpu_validation_extra_specs: {}
+# [list] Nova compute hostnames to add to the GPU validation aggregate
+gpu_validation_aggregate_hosts: []
+# [string] Host aggregate name when group_policy extra spec is set
+gpu_validation_aggregate_name: "{{ gpu_validation_flavor_name }}"
+# [list] Extra default specs for the flavor:
+# automatically evaluated based on gpu_validation_mem_page_size and gpu_validation_mode:
+# gpu_validation_mode in ["mig", "vgpu"] - overriden and merged with gpu_validation_extra_specs
+# gpu_validation_mode == "pci_passthrough" - merged with gpu_validation_extra_specs
+gpu_validation_extra_specs_default:
   "pci_passthrough:alias": "{{ gpu_validation_pci_alias }}:{{ gpu_validation_flavor_gpus }}"
   "hw:pci_numa_affinity_policy": "preferred"
   "hw:hide_hypervisor_id": "true"
@@ -55,6 +64,9 @@ gpu_validation_security_group: basic
 gpu_validation_floating_ip: 192.168.122.222
 # [string] WARNING Where to (over-)write the ssh key. Must match path in inventory
 gpu_validation_private_key_file: ~/test_keypair.key
+
+# [string] Custom run command for the LLM serving container
+gpu_validation_custom_run_command: ''
 
 # [string] SSH ProxyCommand for accessing VMs through a bastion/hypervisor
 # Example: '-o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -i /path/to/key user@bastion-host"'
@@ -124,11 +136,16 @@ gpu_validation_workload_userns:  # "--userns=keep-id:uid=1001" for RHAIIS
 gpu_validation_workload_shm_size: "--shm-size=4g"
 # [string] Additional environment variables
 gpu_validation_workload_additional_env: "--env=HF_HUB_OFFLINE=0 --env=VLLM_NO_USAGE_STATS=1"
+# [string] Extra [Service] directives appended to vllm-serve.service (e.g. Restart=)
+gpu_validation_workload_service_extra_config: ''
+# [string] ExecStartPre lines injected before ExecStart in vllm-serve.service
+gpu_validation_workload_pre_start_command: ''
 # [string] vLLM API URL
 gpu_validation_vllm_api_url: "http://127.0.0.1:8000"
 # [float] GPU memory utilization for vLLM (0.0-1.0, leave empty to use vLLM default)
 gpu_validation_vllm_mem_utilization:
-
+# [string] Additional arguments for vLLM
+gpu_validation_vllm_extra_args:
 # [bool] Force reboot regardless of needs-restarting check
 gpu_validation_reboot_force: false
 # [int] Reboot timeout in seconds
