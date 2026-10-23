@@ -46,3 +46,60 @@ Once the RHOSO setup is complete, do the following:
     ```
     $ oc apply -f AnsibleTestCR.yaml
     ```
+
+## Stability / lifecycle testing
+
+Two optional, independent loops exercise GPU reliability across VM lifecycles
+(reboots and full recreation). Both are off by default.
+
+### Guest reboot stability (`stability_guest`)
+
+Reboots the same target VM N times and re-asserts the GPU each cycle: `lspci`
+presence, `nvidia-smi` (and MIG mode when `gpu_validation_mode: mig`), the CUDA
+sanity check, plus a guest `dmesg` scan for GPU faults (`Xid`, `NVRM`, "fallen off
+the bus", etc.). It catches GPUs that do not survive a guest reboot/FLR.
+
+Enable it via vars:
+
+```yaml
+gpu_validation_stability_guest_enabled: true
+gpu_validation_stability_guest_cycles: 3
+```
+
+CLI:
+
+```
+ansible-playbook -i inventory main.yaml -e @vars.yaml \
+  -e gpu_validation_stability_guest_enabled=true \
+  -e gpu_validation_stability_guest_cycles=3
+```
+
+### Lifecycle reclaim (`lifecycle_reclaim`)
+
+Behind `gpu_validation_lifecycle_reclaim_enabled` (default `false`), a dedicated
+control-node play loops: create VM → verify the GPU in the guest (`nvidia-smi`) →
+delete VM → assert each GPU PCI BDF returns to the expected host driver on the
+**compute node** (no device leak) and scan the compute-node `dmesg` for
+`vfio`/IOMMU/NVIDIA faults. The expected host driver is derived from
+`gpu_validation_mode` (`vfio-pci` for `pci_passthrough`, `nvidia` for `mig`/`vgpu`).
+It runs its own create/delete cycles, independent of the main validation VM, and
+each cycle rebuilds a whole VM — so keep the cycle count small.
+
+Enable and configure via vars:
+
+```yaml
+gpu_validation_lifecycle_reclaim_enabled: true
+gpu_validation_lifecycle_reclaim_cycles: 3
+gpu_validation_lifecycle_reclaim_gpu_bdfs:
+  - "0000:18:00.0"
+  - "0000:67:00.0"
+```
+
+CLI:
+
+```
+ansible-playbook -i inventory main.yaml -e @vars.yaml \
+  -e gpu_validation_lifecycle_reclaim_enabled=true \
+  -e gpu_validation_lifecycle_reclaim_cycles=3 \
+  -e '{"gpu_validation_lifecycle_reclaim_gpu_bdfs":["0000:18:00.0","0000:67:00.0"]}'
+```

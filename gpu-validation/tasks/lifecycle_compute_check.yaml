@@ -1,0 +1,66 @@
+---
+# Host-side verification after a VM has been deleted (delegated to the compute host):
+#   - each GPU BDF must rebind to the expected host driver (vfio-pci), i.e. no leak
+#   - the compute-node dmesg must be free of vfio/IOMMU/nvidia faults
+- name: "Resolve the compute host from the [compute_nodes] inventory group"
+  ansible.builtin.assert:
+    that: groups['compute_nodes'] | default([]) | length > 0
+    fail_msg: >-
+      Compute-node checks require a [compute_nodes] group in the inventory, but none
+      was found. Add the compute host to that group or disable the checks with
+      gpu_validation_lifecycle_reclaim_compute_checks=false.
+
+- name: "Set the compute host for host-side checks"
+  ansible.builtin.set_fact:
+    _gpu_validation_compute_host: "{{ groups['compute_nodes'][0] }}"
+
+# Expected host driver is implied by the device mode: PCI passthrough leaves the
+# GPU bound to vfio-pci on the host, while MIG/vGPU keep the nvidia driver bound.
+- name: "Determine the expected host driver from gpu_validation_mode"
+  ansible.builtin.set_fact:
+    _gpu_validation_expected_host_driver: >-
+      {{ {'pci_passthrough': 'vfio-pci', 'mig': 'nvidia', 'vgpu': 'nvidia'}[gpu_validation_mode] }}
+
+- name: "Wait for GPU(s) to rebind on the compute node (cycle {{ gpu_validation_lifecycle_reclaim_cycle }})"
+  ansible.builtin.pause:
+    seconds: "{{ gpu_validation_lifecycle_reclaim_rebind_wait | int }}"
+
+- name: "Read current host driver symlink for each GPU BDF (cycle {{ gpu_validation_lifecycle_reclaim_cycle }})"
+  delegate_to: "{{ _gpu_validation_compute_host }}"
+  become: true
+  ansible.builtin.stat:
+    path: "/sys/bus/pci/devices/{{ item }}/driver"
+  loop: "{{ gpu_validation_lifecycle_reclaim_gpu_bdfs }}"
+  register: _gpu_validation_host_drivers
+
+- name: "TEST[lifecycle] Each GPU returned to {{ _gpu_validation_expected_host_driver }} on host (cycle {{ gpu_validation_lifecycle_reclaim_cycle }})"
+  vars:
+    # driver is a symlink -> .../drivers/<name>; basename of lnk_target is the bound driver.
+    # A BDF leaks if the symlink is missing (no driver bound) or points elsewhere.
+    _gpu_validation_leaked: >-
+      {{ _gpu_validation_host_drivers.results
+         | selectattr('item', 'defined')
+         | rejectattr('stat.exists')
+         | map(attribute='item') | list
+         + _gpu_validation_host_drivers.results
+         | selectattr('stat.exists')
+         | rejectattr('stat.lnk_target', 'search',
+                      '(^|/)' ~ _gpu_validation_expected_host_driver ~ '$')
+         | map(attribute='item') | list }}
+  ansible.builtin.assert:
+    that: _gpu_validation_leaked | length == 0
+    fail_msg: >-
+      GPU leak after VM delete (cycle {{ gpu_validation_lifecycle_reclaim_cycle }}):
+      these BDFs did not return to {{ _gpu_validation_expected_host_driver }}
+      on {{ _gpu_validation_compute_host }}: {{ _gpu_validation_leaked }}
+    success_msg: >-
+      All GPU BDFs rebound to {{ _gpu_validation_expected_host_driver }}
+      on the compute node (cycle {{ gpu_validation_lifecycle_reclaim_cycle }})
+  when: gpu_validation_lifecycle_reclaim_gpu_bdfs | length > 0
+
+- name: "Scan compute-node dmesg for faults (cycle {{ gpu_validation_lifecycle_reclaim_cycle }})"
+  ansible.builtin.include_tasks: assert_dmesg_clean.yaml
+  vars:
+    _gpu_validation_dmesg_pattern: "{{ gpu_validation_lifecycle_reclaim_host_dmesg_pattern }}"
+    _gpu_validation_dmesg_label: "compute node {{ _gpu_validation_compute_host }} (reclaim cycle {{ gpu_validation_lifecycle_reclaim_cycle }})"
+    _gpu_validation_dmesg_delegate_host: "{{ _gpu_validation_compute_host }}"

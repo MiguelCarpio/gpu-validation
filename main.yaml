@@ -25,3 +25,37 @@
         name: gpu-validation
         tasks_from: vm_post.yaml
   tags: rhoso
+
+# Optional lifecycle-reclaim loop (create VM -> verify GPU -> delete -> assert the
+# GPU returns to the host driver). Runs from the control node, behind
+# gpu_validation_lifecycle_reclaim_enabled (default false), so the normal flow and
+# the test-operator single-playbook model are unaffected when it is off.
+- name: GPU Validation lifecycle-reclaim loop
+  hosts: control_node
+  gather_facts: false
+  tasks:
+    - name: Lifecycle reclaim loop
+      when: gpu_validation_lifecycle_reclaim_enabled | bool
+      vars:
+        gpu_validation_enabled: true
+      block:
+        - name: One-time VM prerequisites (image, SSH key, network)
+          ansible.builtin.include_role:
+            name: gpu-validation
+            tasks_from: "{{ _prep_task }}"
+          loop:
+            - vm_cleanup.yaml
+            - vm_image.yaml
+            - vm_sshkey.yaml
+            - vm_net.yaml
+          loop_control:
+            loop_var: _prep_task
+
+        - name: "Run {{ gpu_validation_lifecycle_reclaim_cycles }} create/delete reclaim cycles"
+          ansible.builtin.include_role:
+            name: gpu-validation
+            tasks_from: lifecycle_cycle.yaml
+          loop: "{{ range(1, (gpu_validation_lifecycle_reclaim_cycles | int) + 1) | list }}"
+          loop_control:
+            loop_var: gpu_validation_lifecycle_reclaim_cycle
+  tags: lifecycle

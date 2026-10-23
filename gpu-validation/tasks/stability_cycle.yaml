@@ -1,0 +1,37 @@
+---
+# One in-guest stability iteration: reboot, wait, re-check GPU presence,
+# re-run nvidia-smi + CUDA sanity, and scan guest dmesg for faults.
+- name: "Stability cycle {{ gpu_validation_stability_guest_cycle }}/{{ gpu_validation_stability_guest_cycles }}: reboot guest"
+  ansible.builtin.include_tasks: reboot_if_needed.yaml
+  vars:
+    # Force the reboot every cycle (the stability test reboots unconditionally),
+    # scoped to this include so the main setup flow's reboot behaviour is unchanged.
+    gpu_validation_reboot_force: true
+
+- name: "Stability cycle {{ gpu_validation_stability_guest_cycle }}: re-check GPU presence (lspci)"
+  ansible.builtin.import_tasks: gpus.yaml
+
+- name: "Stability cycle {{ gpu_validation_stability_guest_cycle }}: assert GPU present (lspci)"
+  ansible.builtin.import_tasks: gpus_assertions.yaml
+
+- name: "Stability cycle {{ gpu_validation_stability_guest_cycle }}: NVIDIA re-checks"
+  when:
+    - gpu_validation_found[gpu_validation_vendor_name] | bool
+    - gpu_validation_vendor_name | upper == "NVIDIA"
+  block:
+    - name: "Stability cycle {{ gpu_validation_stability_guest_cycle }}: re-check nvidia-smi"
+      ansible.builtin.import_tasks: nvidia.yaml
+
+    - name: "Stability cycle {{ gpu_validation_stability_guest_cycle }}: assert nvidia-smi healthy"
+      ansible.builtin.import_tasks: nvidia_assertions.yaml
+
+    - name: "Stability cycle {{ gpu_validation_stability_guest_cycle }}: re-run CUDA sanity check"
+      ansible.builtin.import_tasks: cuda_assertions.yaml
+      when: gpu_validation_model_tests_enabled | bool
+
+- name: "Stability cycle {{ gpu_validation_stability_guest_cycle }}: scan guest dmesg for GPU faults"
+  ansible.builtin.include_tasks: assert_dmesg_clean.yaml
+  when: gpu_validation_stability_guest_dmesg_scan | bool
+  vars:
+    _gpu_validation_dmesg_pattern: "{{ gpu_validation_stability_guest_dmesg_pattern }}"
+    _gpu_validation_dmesg_label: "guest (stability cycle {{ gpu_validation_stability_guest_cycle }})"

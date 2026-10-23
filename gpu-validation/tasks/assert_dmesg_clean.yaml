@@ -1,0 +1,24 @@
+---
+# Read dmesg and assert no lines match a fault pattern.
+# Parameters (set via vars on the include):
+#   _gpu_validation_dmesg_pattern        [str]  regex of lines treated as faults (required)
+#   _gpu_validation_dmesg_label          [str]  short label for task names / messages (required)
+#   _gpu_validation_dmesg_delegate_host  [str]  host to read dmesg on; omit to run on the
+#                                               current target host (optional)
+- name: "Read {{ _gpu_validation_dmesg_label }} dmesg"
+  delegate_to: "{{ _gpu_validation_dmesg_delegate_host | default(omit) }}"
+  become: true
+  ansible.builtin.command: dmesg
+  register: _gpu_validation_dmesg
+  changed_when: false
+
+- name: "TEST[dmesg] No faults in {{ _gpu_validation_dmesg_label }} dmesg"
+  vars:
+    _gpu_validation_dmesg_faults: >-
+      {{ _gpu_validation_dmesg.stdout_lines
+         | select('search', _gpu_validation_dmesg_pattern)
+         | list }}
+  ansible.builtin.assert:
+    that: _gpu_validation_dmesg_faults | length == 0
+    fail_msg: "{{ _gpu_validation_dmesg_label }} dmesg reported faults: {{ _gpu_validation_dmesg_faults }}"
+    success_msg: "No faults in {{ _gpu_validation_dmesg_label }} dmesg"

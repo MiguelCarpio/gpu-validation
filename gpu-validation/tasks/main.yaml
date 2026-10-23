@@ -59,6 +59,13 @@
   when: gpu_validation_model_tests_enabled | bool
   ignore_errors: true
 
+- name: In-guest stability loop (reboot + re-assert GPU)
+  ansible.builtin.include_tasks: stability_cycle.yaml
+  when: gpu_validation_stability_guest_enabled | bool
+  loop: "{{ range(1, (gpu_validation_stability_guest_cycles | int) + 1) | list }}"
+  loop_control:
+    loop_var: gpu_validation_stability_guest_cycle
+
 - name: Cleanup
   become: true
   ansible.builtin.import_tasks: cleanup.yaml

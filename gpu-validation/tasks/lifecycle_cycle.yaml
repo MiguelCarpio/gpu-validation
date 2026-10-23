@@ -1,0 +1,46 @@
+---
+# One full lifecycle iteration (run from the control node):
+#   create VM -> wait for SSH -> verify GPU visible in guest -> delete VM
+#   -> assert each GPU BDF rebinds to the host driver and scan compute-node dmesg.
+- name: "Lifecycle cycle {{ gpu_validation_lifecycle_reclaim_cycle }}/{{ gpu_validation_lifecycle_reclaim_cycles }}: create + verify VM"
+  block:
+    - name: "Lifecycle cycle {{ gpu_validation_lifecycle_reclaim_cycle }}: deploy VM"
+      ansible.builtin.import_tasks: vm_deploy.yaml
+
+    - name: "Lifecycle cycle {{ gpu_validation_lifecycle_reclaim_cycle }}: register the VM as an ad-hoc host"
+      ansible.builtin.add_host:
+        name: gpu-validation-lifecycle-vm
+        groups: _gpu_validation_lifecycle_reclaim_vm
+        ansible_host: "{{ gpu_validation_floating_ip }}"
+        ansible_user: cloud-user
+        ansible_ssh_private_key_file: "{{ gpu_validation_private_key_file }}"
+        ansible_ssh_common_args: >-
+          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+          {{ gpu_validation_ssh_proxy_command }}
+      changed_when: false
+
+    - name: "Lifecycle cycle {{ gpu_validation_lifecycle_reclaim_cycle }}: verify GPU visible in guest (nvidia-smi)"
+      delegate_to: gpu-validation-lifecycle-vm
+      ansible.builtin.command: nvidia-smi --query-gpu=name --format=csv,noheader
+      register: _gpu_validation_lifecycle_reclaim_smi
+      retries: 30
+      delay: 10
+      until: _gpu_validation_lifecycle_reclaim_smi.rc == 0 and _gpu_validation_lifecycle_reclaim_smi.stdout | length > 0
+      changed_when: false
+
+    - name: "TEST[lifecycle] GPU present in guest (cycle {{ gpu_validation_lifecycle_reclaim_cycle }})"
+      ansible.builtin.assert:
+        that: _gpu_validation_lifecycle_reclaim_smi.stdout_lines | length >= (gpu_validation_flavor_gpus | int)
+        fail_msg: >-
+          Expected {{ gpu_validation_flavor_gpus }} GPU(s) in guest on cycle
+          {{ gpu_validation_lifecycle_reclaim_cycle }}, nvidia-smi returned:
+          {{ _gpu_validation_lifecycle_reclaim_smi.stdout_lines }}
+        success_msg: "GPU(s) present in guest: {{ _gpu_validation_lifecycle_reclaim_smi.stdout_lines }}"
+
+  always:
+    - name: "Lifecycle cycle {{ gpu_validation_lifecycle_reclaim_cycle }}: delete VM"
+      ansible.builtin.import_tasks: vm_cleanup.yaml
+
+- name: "Lifecycle cycle {{ gpu_validation_lifecycle_reclaim_cycle }}: compute-node checks"
+  ansible.builtin.import_tasks: lifecycle_compute_check.yaml
+  when: gpu_validation_lifecycle_reclaim_compute_checks | bool

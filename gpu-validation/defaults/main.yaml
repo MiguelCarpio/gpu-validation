@@ -146,6 +146,48 @@ gpu_validation_vllm_api_url: "http://127.0.0.1:8000"
 gpu_validation_vllm_mem_utilization:
 # [string] Additional arguments for vLLM
 gpu_validation_vllm_extra_args:
+# ----------------------------------------------------------------------------
+# Stability / lifecycle testing
+#
+# Two independent loops, both off by default:
+#   stability_guest   - reboot the SAME guest N times, re-assert the GPU/CUDA.
+#                       Tests GPU survival across guest reboots.
+#   lifecycle_reclaim - create+delete fresh VMs N times, then check the GPU
+#                       returns to the host driver. Tests host-side GPU reclaim
+#                       across full VM teardown/rebuild.
+# ----------------------------------------------------------------------------
+
+# --- stability_guest: in-guest reboot survival (runs inside the target VM) ---
+# [bool] Run the in-guest reboot loop (reboot -> re-assert GPU, N times).
+gpu_validation_stability_guest_enabled: false
+# [int] Number of guest reboot iterations. Keep low for CI; raise for soak runs.
+gpu_validation_stability_guest_cycles: 3
+# [bool] Scan guest dmesg for GPU faults after each reboot cycle.
+gpu_validation_stability_guest_dmesg_scan: true
+# [str] Regex of guest dmesg lines treated as GPU faults.
+gpu_validation_stability_guest_dmesg_pattern: 'NVRM|Xid|nvidia.*fault|GPU has fallen off the bus|BUG:|Call Trace'
+
+# --- lifecycle_reclaim: host-side GPU reclaim across VM recreation ------------
+# Driven from main.yaml by a dedicated control_node play; runs its own
+# create/verify/delete cycles independent of the main validation VM.
+# [bool] Run the lifecycle reclaim loop (create VM -> verify GPU -> delete ->
+# assert the GPU returns to the host driver), N times.
+gpu_validation_lifecycle_reclaim_enabled: false
+# [int] Number of create/delete iterations. Each cycle rebuilds a whole VM, so
+# this is far more expensive than the guest reboot loop; keep it small.
+gpu_validation_lifecycle_reclaim_cycles: 3
+# [bool] After each VM delete, check the GPU BDF(s) return to the expected host
+# driver and scan the compute-node dmesg. The checks run on the first host of the
+# [compute_nodes] inventory group, so that group must be defined.
+gpu_validation_lifecycle_reclaim_compute_checks: true
+# [list] GPU PCI BDFs on the compute node that must rebind after VM delete,
+# e.g. ['0000:18:00.0', '0000:67:00.0']. Leave empty to skip the rebind check.
+gpu_validation_lifecycle_reclaim_gpu_bdfs: []
+# [str] Regex of compute-node dmesg lines treated as faults.
+gpu_validation_lifecycle_reclaim_host_dmesg_pattern: 'vfio.*(error|fault)|nvidia.*fault|DMAR.*fault|BUG:|Call Trace'
+# [int] Seconds to wait after VM delete before checking host-side rebind.
+gpu_validation_lifecycle_reclaim_rebind_wait: 15
+
 # [bool] Force reboot regardless of needs-restarting check
 gpu_validation_reboot_force: false
 # [int] Reboot timeout in seconds
