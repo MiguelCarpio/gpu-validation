@@ -1,34 +1,54 @@
 ---
-- name: Make sure yum-utils is installed
-  become: true
-  ansible.builtin.dnf:
-    name: yum-utils
-    state: present
-
 - name: Check if reboot is required with needs-restarting
-  become: true
-  ansible.builtin.command: needs-restarting -r
-  register: _gpu_validation_needs_restarting
-  changed_when: false
-  failed_when: _gpu_validation_needs_restarting.rc >= 2
-
-- name: Print return information from needs-restarting
-  ansible.builtin.debug:
-    var: _gpu_validation_needs_restarting.stdout
-
-- name: Reboot to apply system updates
-  when: gpu_validation_reboot_force | bool or _gpu_validation_needs_restarting.rc == 1
-  become: true
+  when: not (gpu_validation_reboot_force | bool)
   block:
-    - name: Reboot to apply system updates
-      ansible.builtin.reboot:
-        msg: "Rebooting to apply kernel and driver updates"
-        reboot_timeout: "{{ gpu_validation_reboot_timeout }}"
-        post_reboot_delay: "{{ gpu_validation_reboot_post_delay }}"
-  rescue:
-    - name: Debug message (local runner mode)  # noqa: ignore-errors
-      ansible.builtin.fail:
+    - name: Make sure yum-utils is installed
+      become: true
+      ansible.builtin.dnf:
+        name: yum-utils
+        state: present
+
+    - name: Check if reboot is required with needs-restarting
+      become: true
+      ansible.builtin.command: needs-restarting -r
+      register: _gpu_validation_needs_restarting
+      changed_when: false
+      failed_when: _gpu_validation_needs_restarting.rc >= 2
+
+    - name: Print return information from needs-restarting
+      ansible.builtin.debug:
+        var: _gpu_validation_needs_restarting.stdout
+
+- name: Reboot handling
+  when: gpu_validation_reboot_force | bool or (_gpu_validation_needs_restarting.rc | default(0)) == 1
+  block:
+    - name: Determine whether this is local-runner mode
+      ansible.builtin.set_fact:
+        _gpu_validation_local_runner: "{{ ansible_connection | default('') == 'local' }}"
+
+    - name: Skip reboot in local-runner mode (VM is the control node)
+      ansible.builtin.debug:
         msg: >-
-          In local runner mode, the VM is the control node and cannot be rebooted!
-          Make sure to reboot it manually (just once) and restart the validation suite after.
-      ignore_errors: true
+          Local-runner mode detected (ansible_connection=local): the VM is the
+          control node and cannot reboot itself. Reboot it manually once and
+          restart the validation suite.
+      when: _gpu_validation_local_runner | bool
+
+    - name: Reboot to apply system updates
+      when: not (_gpu_validation_local_runner | bool)
+      block:
+        - name: Reboot
+          become: true
+          ansible.builtin.reboot:
+            msg: "Rebooting to apply kernel and driver updates"
+            reboot_timeout: "{{ gpu_validation_reboot_timeout }}"
+            post_reboot_delay: "{{ gpu_validation_reboot_post_delay }}"
+      rescue:
+        - name: Capture console log for the VM that did not come back
+          ansible.builtin.include_tasks: capture_console_log.yaml
+
+        - name: Fail - VM did not come back after reboot
+          ansible.builtin.fail:
+            msg: >-
+              The VM did not come back after reboot (unreachable) -- a
+              reboot-survival failure. See the console log captured above.

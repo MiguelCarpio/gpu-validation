@@ -33,6 +33,13 @@ Once the RHOSO setup is complete, do the following:
     JUNIT_OUTPUT_DIR=./ ansible-playbook -i inventory main.yaml -e @vars.yaml -e @creds.yaml -e '{"gpu_validation_pci_devices":{"10de:20f1": 1}}'
     ```
 
+    NOTE - To verify the GPU survives guest reboots, enable the reboot stability
+    loop with `-e gpu_validation_stability_tests_enabled=true`
+    (optionally `-e gpu_validation_stability_cycles=N`, default 3). Each
+    cycle reboots the guest and re-asserts the GPU (lspci, nvidia-smi, CUDA) with
+    an informational dmesg scan. Off by default; needs a remote target (not
+    local-runner mode).
+
 ## Running w/ test-operator
 
 1. Confirm that your RHOSO deployment has test-operator running

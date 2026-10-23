@@ -1,0 +1,29 @@
+---
+# Report dmesg lines matching a fault pattern. Informational only.
+# Params: _gpu_validation_dmesg_pattern (regex), _gpu_validation_dmesg_label,
+# _gpu_validation_dmesg_delegate_host (optional; defaults to the current host).
+- name: "Read dmesg for {{ _gpu_validation_dmesg_label }}"
+  delegate_to: "{{ _gpu_validation_dmesg_delegate_host | default(omit) }}"
+  become: true
+  ansible.builtin.command: dmesg
+  register: _gpu_validation_dmesg
+  changed_when: false
+  failed_when: false
+
+- name: "Report suspicious dmesg lines for {{ _gpu_validation_dmesg_label }}"
+  vars:
+    _gpu_validation_dmesg_faults: >-
+      {{ (_gpu_validation_dmesg.stdout_lines | default([]))
+         | select('search', _gpu_validation_dmesg_pattern)
+         | list }}
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        ('dmesg scan unavailable for ' ~ _gpu_validation_dmesg_label ~ ' (informational): '
+         ~ (_gpu_validation_dmesg.stderr | default('dmesg failed') | trim))
+        if (_gpu_validation_dmesg.rc | default(1)) != 0
+        else (('No suspicious lines in ' ~ _gpu_validation_dmesg_label ~ ' dmesg')
+              if (_gpu_validation_dmesg_faults | length == 0)
+              else ('WARNING: suspicious ' ~ _gpu_validation_dmesg_label ~ ' dmesg lines (informational, not failing): '
+                    ~ _gpu_validation_dmesg_faults | join('\n')))
+      }}

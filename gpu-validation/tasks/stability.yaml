@@ -1,0 +1,25 @@
+---
+# Reboot stability tests: reboot N times and re-assert the GPU.
+# In local-runner mode the VM is the control node and cannot reboot itself, so
+# the reboot would be skipped and the loop would falsely pass -- fail instead.
+- name: Guest reboot stability tests require a remote target
+  ansible.builtin.fail:
+    msg: >-
+      Guest reboot stability tests need a remote target; in local-runner mode
+      (ansible_connection=local) the VM is the control node and cannot reboot
+      itself, so the loop would not test reboot survival.
+  when: (ansible_connection | default('')) == 'local'
+
+- name: Guest reboot stability cycles must be at least 1
+  ansible.builtin.assert:
+    that: (gpu_validation_stability_cycles | int) >= 1
+    fail_msg: >-
+      gpu_validation_stability_cycles must be >= 1 (got
+      {{ gpu_validation_stability_cycles }}); otherwise the loop runs
+      zero cycles and does not test reboot survival.
+
+- name: Guest reboot stability loop
+  ansible.builtin.include_tasks: stability_cycle.yaml
+  loop: "{{ range(1, (gpu_validation_stability_cycles | int) + 1) | list }}"
+  loop_control:
+    loop_var: gpu_validation_stability_cycle
