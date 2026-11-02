@@ -1,17 +1,17 @@
 ---
-- name: "TEST[nvidia] Check if GPUs in Passthrough mode are present in RHEL AI VM (nvidia-smi)"
+- name: "TEST[nvidia gpu-count] Check that NVIDIA GPUs are present in the VM (nvidia-smi)"
   ansible.builtin.assert:
     that: nvidia_gpu_count.stdout|int > 0
     fail_msg: No NVIDIA GPUs found in nvidia-smi command!
 
-- name: "TEST[nvidia mig] Check MIG mode slice is Enabled on the VM"
+- name: "TEST[nvidia mig-mode] Check MIG mode slice is Enabled on the VM"
   ansible.builtin.assert:
     that: "'Enabled' in nvidia_smi_mig_mode_output.stdout"
     fail_msg: nvidia-smi did not return any MIG enabled device on the VM.
   when: gpu_validation_mode == "mig"
 
-- name: "TEST[nvidia mig] Check NVIDIA modules are present with MIG VM"
+- name: "TEST[nvidia modules] Check NVIDIA modules are present on a MIG/vGPU VM"
   ansible.builtin.assert:
     that: "'nvidia' in lsmod_mig_mode_output.stdout"
-    fail_msg: lsmod did not return any NVIDIA modules on a MIG enabled VM.
-  when: gpu_validation_mode == "mig"
+    fail_msg: lsmod did not return any NVIDIA modules on a MIG/vGPU VM.
+  when: gpu_validation_mode in ["mig", "vgpu"]

@@ -1,5 +1,5 @@
 ---
-- name: "TEST[gpus] Check if GPUs in Passthrough mode are present in RHEL AI VM (lspci)"
+- name: "TEST[gpus pci-present] Check that the expected GPU PCI devices are present in the VM (lspci)"
   ansible.builtin.shell: |
     set -o pipefail
     echo "{{ lspci_output.stdout }}" | grep '{{ item.key }}' | wc -l

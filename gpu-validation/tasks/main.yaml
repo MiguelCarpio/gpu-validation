@@ -9,6 +9,9 @@
 - name: Check GPUs
   ansible.builtin.import_tasks: gpus.yaml
 
+- name: GPUs Assertions
+  ansible.builtin.import_tasks: gpus_assertions.yaml
+
 - name: Nvidia Setup (Use the edpm_accel_drivers role to install the NVIDIA driver in our VM)
   ansible.builtin.include_role:
     name: osp.edpm.edpm_accel_drivers
@@ -32,9 +35,7 @@
 
     - name: Install NVIDIA container toolkit and configure runtime
       ansible.builtin.import_tasks: nvidia-container-toolkit.yaml
-
-    - name: GPUs Assertions
-      ansible.builtin.import_tasks: gpus_assertions.yaml
+      when: gpu_validation_model_tests_enabled | bool
 
     - name: Check NVIDIA
       ansible.builtin.import_tasks: nvidia.yaml
@@ -44,6 +45,7 @@
 
     - name: Generate NVIDIA CDI configuration
       ansible.builtin.import_tasks: nvidia-cdi.yaml
+      when: gpu_validation_model_tests_enabled | bool
 
     - name: Check CUDA libs
       ansible.builtin.import_tasks: cuda.yaml
@@ -53,11 +55,16 @@
 
 - name: Allow container GPU device access under SELinux
   ansible.builtin.import_tasks: selinux-gpu-access.yaml
+  when: gpu_validation_model_tests_enabled | bool
 
 - name: Check vllm (ignore errors)  # noqa: ignore-errors
   ansible.builtin.import_tasks: vllm.yaml
   when: gpu_validation_model_tests_enabled | bool
   ignore_errors: true
+
+- name: Guest reboot stability tests
+  ansible.builtin.include_tasks: stability.yaml
+  when: gpu_validation_stability_tests_enabled | bool
 
 - name: Cleanup
   become: true

@@ -1,0 +1,49 @@
+---
+- name: "Capture console log for {{ gpu_validation_vm_name }}"
+  delegate_to: localhost
+  run_once: true
+  block:
+    # Best-effort: runs inside the reboot rescue. Missing results are tolerated.
+    - name: "Get status and fault for {{ gpu_validation_vm_name }}"  # noqa: ignore-errors
+      openstack.cloud.server_info:
+        name: "{{ gpu_validation_vm_name }}"
+        ca_cert: "{{ gpu_validation_ca_cert_path }}"
+      register: _gpu_validation_server_info
+      ignore_errors: true
+
+    # No openstack.cloud module exposes the serial console log, so call the SDK
+    # directly. Run it with ansible_playbook_python (the controller interpreter,
+    # which is where this task is delegated and where openstacksdk is installed);
+    # the system python3 may not have the SDK. Best-effort.
+    - name: "Get console log via the OpenStack SDK for {{ gpu_validation_vm_name }}"
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - "{{ role_path }}/files/scripts/get_console_log.py"
+          - "{{ gpu_validation_vm_name }}"
+          - "{{ gpu_validation_ca_cert_path }}"
+          - "{{ gpu_validation_console_log_lines }}"
+      register: _gpu_validation_console_log
+      changed_when: false
+      failed_when: false
+
+    - name: "Print status/fault and console log for {{ gpu_validation_vm_name }}"
+      vars:
+        _gpu_validation_server: "{{ (_gpu_validation_server_info.servers | default([]))[0] | default({}) }}"
+        _gpu_validation_console_output: "{{ _gpu_validation_console_log.stdout_lines | default([]) }}"
+      ansible.builtin.debug:
+        msg: >-
+          {{
+            [
+              '=== ' ~ gpu_validation_vm_name ~ ' status ===',
+              'status:   ' ~ (_gpu_validation_server.status | default('unknown')),
+              'vm_state: ' ~ (_gpu_validation_server.vm_state | default('unknown')),
+              'fault:    ' ~ (_gpu_validation_server.fault | default('none')),
+              '=== ' ~ gpu_validation_vm_name ~ ' console log (tail) ===',
+            ]
+            + (_gpu_validation_console_output[-(gpu_validation_console_log_lines | int):]
+               if (_gpu_validation_console_output | length > 0)
+               else ['(console log unavailable: '
+                     ~ ((_gpu_validation_console_log.stderr_lines | default([]) | select | list | last)
+                        | default('SDK call failed', true)) ~ ')'])
+          }}

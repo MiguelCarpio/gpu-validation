@@ -25,8 +25,8 @@
   when: gpu_validation_mode == "mig"
   changed_when: false
 
-- name: Run lsmod to get MIG NVIDIA modules status
+- name: Run lsmod to get NVIDIA modules status
   ansible.builtin.command: lsmod
   register: lsmod_mig_mode_output
-  when: gpu_validation_mode == "mig"
+  when: gpu_validation_mode in ["mig", "vgpu"]
   changed_when: false

@@ -95,9 +95,6 @@ gpu_validation_pci_devices:
 # [string] Vendor name for the GPU to be selected for the validation
 gpu_validation_vendor_name: nvidia
 
-# [bool] Install nvidia-container-toolkit and generate CDI specs for container GPU access.
-# Required when the guest VM does not have the toolkit pre-installed.
-gpu_validation_nvidia_container_toolkit_install: true
 # [string] URL of the nvidia-container-toolkit .repo file to add.
 # When empty, the repo is not added (toolkit must already be available from an existing repo).
 gpu_validation_nvidia_container_toolkit_repo_url: "https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo"
@@ -146,6 +143,20 @@ gpu_validation_vllm_api_url: "http://127.0.0.1:8000"
 gpu_validation_vllm_mem_utilization:
 # [string] Additional arguments for vLLM
 gpu_validation_vllm_extra_args:
+
+# Reboot stability - reboot the SAME guest N times, re-asserting the GPU/CUDA
+# each cycle. Tests GPU survival across reboots. Off by default.
+# [bool] Run the reboot stability loop (reboot -> re-assert GPU, N times).
+gpu_validation_stability_tests_enabled: false
+# [int] Number of reboot iterations.
+gpu_validation_stability_cycles: 3
+# [bool] Scan dmesg for GPU faults after each reboot cycle.
+gpu_validation_stability_dmesg_scan: true
+# [str] Regex of dmesg lines surfaced as suspicious (informational only).
+gpu_validation_stability_dmesg_pattern: 'Xid|GPU has fallen off the bus|nvidia.*fault|Kernel panic|BUG:|Oops|general protection fault'
+# [int] Number of console log tail lines to fetch/show when a reboot fails.
+gpu_validation_console_log_lines: 120
+
 # [bool] Force reboot regardless of needs-restarting check
 gpu_validation_reboot_force: false
 # [int] Reboot timeout in seconds
