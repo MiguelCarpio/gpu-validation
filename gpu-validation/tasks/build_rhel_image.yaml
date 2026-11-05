@@ -1,0 +1,78 @@
+---
+# Build a RHEL guest qcow2 via the hosted Red Hat Image Builder API, using a
+# Red Hat offline token (for non-public RHEL images, which have no public URL).
+# Sets _gpu_validation_rhel_image_url to the resulting signed URL.
+- name: Exchange the Red Hat offline token for an access token
+  ansible.builtin.uri:
+    url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+    method: POST
+    body_format: form-urlencoded
+    body:
+      grant_type: refresh_token
+      client_id: rhsm-api
+      refresh_token: "{{ gpu_validation_redhat_offline_token }}"
+    status_code: 200
+  register: _gpu_validation_redhat_sso
+  no_log: true
+
+- name: Request a RHEL guest-image compose
+  block:
+    - name: Submit the compose request
+      ansible.builtin.uri:
+        url: https://console.redhat.com/api/image-builder/v1/compose
+        method: POST
+        headers:
+          Authorization: "Bearer {{ _gpu_validation_redhat_sso.json.access_token }}"
+        body_format: json
+        body:
+          distribution: "{{ gpu_validation_redhat_image_distribution }}"
+          image_name: "{{ gpu_validation_redhat_image_distribution }}-kvm"
+          image_requests:
+            - architecture: x86_64
+              image_type: guest-image
+              upload_request:
+                type: aws.s3
+                options: {}
+        status_code: [200, 201]
+      register: _gpu_validation_redhat_compose
+      no_log: true
+  rescue:
+    - name: Report the compose error
+      ansible.builtin.fail:
+        msg: >-
+          Image Builder compose request failed (HTTP
+          {{ _gpu_validation_redhat_compose.status | default('unknown') }}):
+          {{ _gpu_validation_redhat_compose.json | default(_gpu_validation_redhat_compose.msg | default('no response body')) }}
+
+- name: Wait for the compose to finish
+  ansible.builtin.uri:
+    url: "https://console.redhat.com/api/image-builder/v1/composes/{{ _gpu_validation_redhat_compose.json.id }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ _gpu_validation_redhat_sso.json.access_token }}"
+    status_code: 200
+  register: _gpu_validation_redhat_status
+  failed_when: false
+  until: >-
+    _gpu_validation_redhat_status.json.image_status.status | default('') in ['success', 'failure']
+    or _gpu_validation_redhat_status.status | default(0) in [401, 403]
+  retries: "{{ gpu_validation_redhat_image_build_retries | int }}"
+  delay: "{{ gpu_validation_redhat_image_build_delay }}"
+  no_log: true
+
+- name: Fail if the compose did not succeed
+  ansible.builtin.fail:
+    msg: >-
+      Image Builder compose did not succeed (HTTP {{ _gpu_validation_redhat_status.status | default('?') }},
+      last status: {{ _gpu_validation_redhat_status.json.image_status.status | default('none') }})
+  when: _gpu_validation_redhat_status.json.image_status.status | default('') != 'success'
+
+- name: Require a download URL in the compose result
+  ansible.builtin.assert:
+    that: _gpu_validation_redhat_status.json.image_status.upload_status.options.url | default('') | length > 0
+    fail_msg: "Compose succeeded but returned no download URL."
+
+- name: Set the Image Builder download URL
+  ansible.builtin.set_fact:
+    _gpu_validation_rhel_image_url: "{{ _gpu_validation_redhat_status.json.image_status.upload_status.options.url }}"
+  no_log: true

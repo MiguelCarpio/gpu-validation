@@ -12,8 +12,41 @@ gpu_validation_mode: pci_passthrough
 gpu_validation_vm_name: gpu-validation
 # [string] URL of the image to use when creating the VM
 gpu_validation_image_url: https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2
-# [string] Image name to use when creating the VM
-gpu_validation_image_name: gpu-validation
+# [string] Image name to use when creating the VM. With the Red Hat offline token,
+# defaults to the distribution name to avoid colliding with the default image.
+gpu_validation_image_name: >-
+  {{ gpu_validation_redhat_image_distribution
+     if (gpu_validation_redhat_offline_token | length > 0)
+     else 'gpu-validation' }}
+# [string] Private dir on the runner that stages the downloaded image before Glance upload.
+gpu_validation_image_cache_dir: "{{ lookup('env', 'HOME') }}/.cache/gpu-validation"
+
+# [string] Red Hat offline token for the Image Builder API (from
+# https://access.redhat.com/management/api). When set and the Glance image is
+# absent, build a RHEL guest qcow2 instead of fetching gpu_validation_image_url.
+gpu_validation_redhat_offline_token: ""
+# [string] Distribution to build via Image Builder when the token is set.
+gpu_validation_redhat_image_distribution: rhel-9.6
+# [int] Image Builder compose poll: retries and seconds between them. retries *
+# delay must stay under the ~15 min access-token life.
+gpu_validation_redhat_image_build_retries: 40
+gpu_validation_redhat_image_build_delay: 20
+
+# RHSM registration for RHEL guests. Skipped when the activation key is empty.
+# [string] RHSM organization ID.
+gpu_validation_rhsm_org: ""
+# [string] RHSM activation key.
+gpu_validation_rhsm_activationkey: ""
+# [string] RHEL release to pin for RHSM, derived from the image distribution. Set empty to skip.
+# The distribution is dotted for rhel-9.6 and above, but drops the dot below it
+# (rhel-95, rhel-94), so set this manually and quoted for 9.5 and below (e.g. "9.4").
+gpu_validation_rhsm_release: "{{ gpu_validation_redhat_image_distribution | regex_replace('^rhel-', '') }}"
+# [list] RHSM repositories to enable. EUS repos need an EUS subscription and a
+# release pin; use the non-EUS *-rpms repos if you lack EUS.
+gpu_validation_rhsm_repos:
+  - rhel-9-for-x86_64-baseos-eus-rpms
+  - rhel-9-for-x86_64-appstream-eus-rpms
+
 # [string] Flavor to use when creating the VM
 gpu_validation_flavor_name: nvidia
 # [string] RAM value for the flavor

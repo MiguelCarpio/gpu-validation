@@ -10,6 +10,19 @@
   ansible.builtin.include_tasks: proxy.yaml
   when: (gpu_validation_http_proxy | length > 0) or (gpu_validation_https_proxy | length > 0)
 
+- name: Register the guest with RHSM
+  when: (gpu_validation_rhsm_org | string | length > 0) or (gpu_validation_rhsm_activationkey | string | length > 0)
+  block:
+    - name: Require both RHSM org and activation key
+      ansible.builtin.assert:
+        that:
+          - gpu_validation_rhsm_org | string | length > 0
+          - gpu_validation_rhsm_activationkey | string | length > 0
+        fail_msg: "Set both gpu_validation_rhsm_org and gpu_validation_rhsm_activationkey to register."
+
+    - name: Register the guest with RHSM
+      ansible.builtin.include_tasks: register_rhsm.yaml
+
 - name: Execute bootstrap command
   ansible.builtin.include_role:
     name: osp.edpm.edpm_bootstrap

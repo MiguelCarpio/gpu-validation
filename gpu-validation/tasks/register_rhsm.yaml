@@ -1,0 +1,23 @@
+---
+# Register a RHEL guest with RHSM.
+- name: Register the guest with Red Hat Subscription Manager
+  become: true
+  community.general.redhat_subscription:
+    state: present
+    org_id: "{{ gpu_validation_rhsm_org }}"
+    activationkey: "{{ gpu_validation_rhsm_activationkey }}"
+  no_log: true
+
+- name: Pin the RHEL release
+  become: true
+  community.general.rhsm_release:
+    release: "{{ gpu_validation_rhsm_release | string }}"
+  when: gpu_validation_rhsm_release | string | length > 0
+
+- name: Enable exactly the required RHSM repositories
+  become: true
+  community.general.rhsm_repository:
+    name: "{{ gpu_validation_rhsm_repos }}"
+    state: enabled
+    purge: true
+  when: gpu_validation_rhsm_repos | length > 0

@@ -9,11 +9,47 @@
   ansible.builtin.set_fact:
     _gpu_validation_image_exists: "{{ (_gpu_validation_image_info.images | length) > 0 }}"
 
+- name: Require an RHSM key for the RHEL image path
+  ansible.builtin.assert:
+    that:
+      - gpu_validation_rhsm_activationkey | string | length > 0
+      - gpu_validation_rhsm_org | string | length > 0
+    fail_msg: "A built RHEL guest has no repos; set gpu_validation_rhsm_activationkey and gpu_validation_rhsm_org to enable dnf."
+  when:
+    - not _gpu_validation_image_exists | bool
+    - gpu_validation_redhat_offline_token | length > 0
+    - gpu_validation_redhat_image_distribution is match('^rhel-')
+
+- name: Build RHEL image via the Red Hat Image Builder API
+  ansible.builtin.include_tasks: build_rhel_image.yaml
+  when:
+    - not _gpu_validation_image_exists | bool
+    - gpu_validation_redhat_offline_token | length > 0
+
+- name: Resolve the image download URL and destination
+  ansible.builtin.set_fact:
+    _gpu_validation_image_src_url: >-
+      {{ _gpu_validation_rhel_image_url | default('')
+         if (gpu_validation_redhat_offline_token | length > 0)
+         else gpu_validation_image_url }}
+    _gpu_validation_image_file: "{{ gpu_validation_image_cache_dir }}/{{ gpu_validation_image_name }}.qcow2"
+  no_log: "{{ gpu_validation_redhat_offline_token | length > 0 }}"
+  when: not _gpu_validation_image_exists | bool
+
+- name: Create a private cache dir for the downloaded image
+  ansible.builtin.file:
+    path: "{{ gpu_validation_image_cache_dir }}"
+    state: directory
+    mode: '0700'
+  when: not _gpu_validation_image_exists | bool
+
 - name: Download VM image
   ansible.builtin.get_url:
-    url: "{{ gpu_validation_image_url }}"
-    dest: "/tmp/{{ gpu_validation_image_url | basename }}"
-    mode: '0644'
+    url: "{{ _gpu_validation_image_src_url }}"
+    dest: "{{ _gpu_validation_image_file }}"
+    mode: '0600'
+    force: true
+  no_log: "{{ gpu_validation_redhat_offline_token | length > 0 }}"
   when: not _gpu_validation_image_exists | bool
 
 - name: Create glance image from GPU validation download source
@@ -21,9 +57,15 @@
     name: "{{ gpu_validation_image_name }}"
     container_format: bare
     disk_format: qcow2
-    filename: "/tmp/{{ gpu_validation_image_url | basename }}"
+    filename: "{{ _gpu_validation_image_file }}"
     visibility: public
     ca_cert: "{{ gpu_validation_ca_cert_path }}"
+  when: not _gpu_validation_image_exists | bool
+
+- name: Remove the downloaded image after upload
+  ansible.builtin.file:
+    path: "{{ _gpu_validation_image_file }}"
+    state: absent
   when: not _gpu_validation_image_exists | bool
 
 - name: Reset extra_specs_default for vGPU scheduling safe defaults
